@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 每日简报</title>
+<style>
+/* ── CSS变量：深色主题 ────────────────────────────── */
+[data-theme="dark"]{
+  --bg-body:#0b0f1a;
+  --bg-card:#161c2e;
+  --border:#252d44;
+  --text-primary:#e0e6f0;
+  --text-secondary:#6b7a99;
+  --text-muted:#4a5578;
+  --text-summary:#99a4bb;
+  --accent:#5b6eef;
+  --accent-light:#7b8cff;
+  --accent2:#44e5c2;
+  --accent-bg:#5b6eef22;
+  --accent2-bg:#44e5c222;
+  --node-pending-bg:#161c2e;
+  --node-pending-color:#3a4262;
+  --node-running-bg:#1c254a;
+  --node-done-bg:#13322b;
+  --selection:#5b6eef55;
+  --btn-text:#0b0f1a;
+}
+/* ── CSS变量：浅色主题 ────────────────────────────── */
+[data-theme="light"]{
+  --bg-body:#f4f6fb;
+  --bg-card:#ffffff;
+  --border:#d8dde8;
+  --text-primary:#1a1e2c;
+  --text-secondary:#6b7a99;
+  --text-muted:#8892a8;
+  --text-summary:#4a5270;
+  --accent:#4a5cd6;
+  --accent-light:#4a5cd6;
+  --accent2:#1fae94;
+  --accent-bg:#4a5cd615;
+  --accent2-bg:#1fae9415;
+  --node-pending-bg:#edf0f7;
+  --node-pending-color:#a0a8be;
+  --node-running-bg:#e0e4f8;
+  --node-done-bg:#ddf5ef;
+  --selection:#4a5cd633;
+  --btn-text:#ffffff;
+}
+
+/* ── 基础 ─────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:var(--bg-body);color:var(--text-primary);min-height:100vh;
+  transition:background .3s,color .3s;
+}
+::selection{background:var(--selection)}
+
+/* ── 主题切换按钮 ─────────────────────────────── */
+.theme-toggle{
+  position:fixed;top:16px;right:20px;z-index:100;
+  width:40px;height:40px;border-radius:50%;border:1px solid var(--border);
+  background:var(--bg-card);cursor:pointer;font-size:1.1rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .3s,border-color .3s,transform .15s;
+}
+.theme-toggle:hover{border-color:var(--accent);transform:scale(1.08)}
+
+/* ── 容器 ─────────────────────────────────────── */
+.container{max-width:860px;margin:0 auto;padding:40px 20px}
+h1{
+  text-align:center;font-size:1.8rem;font-weight:700;
+  background:linear-gradient(135deg,var(--accent-light),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:8px;
+}
+.subtitle{text-align:center;color:var(--text-secondary);font-size:.9rem;margin-bottom:36px}
+
+/* ── 筛选区 ───────────────────────────────────── */
+.filter-bar{
+  display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:24px;
+}
+.filter-bar label{
+  display:flex;align-items:center;gap:6px;cursor:pointer;
+  background:var(--bg-card);border:1px solid var(--border);border-radius:8px;
+  padding:8px 16px;font-size:.9rem;transition:all .2s;user-select:none;
+}
+.filter-bar label:hover{border-color:var(--accent)}
+.filter-bar input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+.filter-bar input[type=checkbox]:checked + span{color:var(--text-primary)}
+
+/* ── 操作栏 ───────────────────────────────────── */
+.action-bar{
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  margin-bottom:40px;flex-wrap:wrap;
+}
+.time-select{
+  padding:10px 16px;border-radius:10px;font-size:.9rem;
+  border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);
+  cursor:pointer;outline:none;transition:border-color .2s;
+}
+.time-select:hover,.time-select:focus{border-color:var(--accent)}
+
+.btn{
+  padding:12px 40px;
+  border:none;border-radius:10px;cursor:pointer;font-size:1rem;font-weight:600;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--btn-text);
+  transition:opacity .2s,transform .15s;
+}
+.btn:hover{opacity:.9;transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+/* ── 流程图 ───────────────────────────────────── */
+.pipeline{
+  display:flex;align-items:center;justify-content:center;
+  gap:0;margin-bottom:44px;flex-wrap:wrap;
+}
+.node{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  min-width:100px;position:relative;
+}
+.node-dot{
+  width:48px;height:48px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;transition:all .4s;
+  border:2px solid var(--border);background:var(--node-pending-bg);position:relative;
+}
+.node-label{font-size:.78rem;color:var(--text-secondary);transition:color .3s}
+.node-count{
+  font-size:.72rem;color:var(--text-secondary);min-height:1em;transition:color .3s;
+}
+
+/* 箭头 */
+.arrow{
+  width:40px;height:2px;background:var(--border);position:relative;
+  flex-shrink:0;margin:0 2px;transition:background .4s;
+  margin-bottom:26px;
+}
+.arrow::after{
+  content:'';position:absolute;right:-1px;top:-4px;
+  border:5px solid transparent;border-left:7px solid var(--border);
+  transition:border-color .4s;
+}
+
+/* 状态：pending */
+.node.pending .node-dot{border-color:var(--border);background:var(--node-pending-bg);color:var(--node-pending-color)}
+/* 状态：running */
+.node.running .node-dot{
+  border-color:var(--accent);background:var(--node-running-bg);color:var(--accent-light);
+  box-shadow:0 0 18px color-mix(in srgb,var(--accent) 40%,transparent);
+  animation:pulse 1.2s ease-in-out infinite;
+}
+.node.running .node-label{color:var(--accent-light)}
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 8px color-mix(in srgb,var(--accent) 27%,transparent)}
+  50%{box-shadow:0 0 22px color-mix(in srgb,var(--accent) 67%,transparent)}
+}
+/* 状态：done */
+.node.done .node-dot{
+  border-color:var(--accent2);background:var(--node-done-bg);color:var(--accent2);
+  box-shadow:0 0 12px color-mix(in srgb,var(--accent2) 27%,transparent);
+}
+.node.done .node-label{color:var(--accent2)}
+.node.done .node-count{color:var(--accent2)}
+/* 箭头亮起 */
+.arrow.active{background:var(--accent2)}
+.arrow.active::after{border-left-color:var(--accent2)}
+
+/* ── 简报区 ───────────────────────────────────── */
+.results{display:none}
+.results.show{display:block;animation:fadeUp .4s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+.category-section{margin-bottom:32px}
+.category-title{
+  font-size:1.05rem;font-weight:600;margin-bottom:14px;
+  padding-left:12px;border-left:3px solid var(--accent);
+}
+.card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:10px;
+  padding:16px 20px;margin-bottom:10px;
+  transition:border-color .2s,transform .15s;
+}
+.card:hover{border-color:color-mix(in srgb,var(--accent) 27%,transparent);transform:translateX(3px)}
+.card-header{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+.card-title{font-size:.95rem;font-weight:600;color:var(--text-primary)}
+.tag{
+  font-size:.7rem;padding:2px 8px;border-radius:4px;
+  background:var(--accent-bg);color:var(--accent-light);white-space:nowrap;
+}
+.tag.source{background:var(--accent2-bg);color:var(--accent2)}
+.card-summary{font-size:.85rem;color:var(--text-summary);line-height:1.6;margin-bottom:8px}
+.card-link{
+  font-size:.78rem;color:var(--accent);text-decoration:none;word-break:break-all;
+}
+.card-link:hover{text-decoration:underline}
+
+/* ── 空/错误 ──────────────────────────────────── */
+.empty-msg{text-align:center;color:var(--text-muted);padding:40px 0;font-size:.9rem}
+.error-msg{text-align:center;color:#ef5b5b;padding:20px 0;font-size:.9rem}
+
+/* ── 响应式 ───────────────────────────────────── */
+@media(max-width:600px){
+  .pipeline{gap:0}
+  .arrow{width:24px}
+  .node-dot{width:40px;height:40px;font-size:1rem}
+  .filter-bar label{padding:6px 12px;font-size:.82rem}
+  .action-bar{gap:10px}
+}
+</style>
+</head>
+<body>
+
+<!-- 主题切换 -->
+<button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" title="切换主题">🌙</button>
+
+<div class="container">
+  <h1>AI 每日简报</h1>
+  <p class="subtitle">聚合 GitHub Trending · HuggingFace Papers · 量子位</p>
+
+  <!-- 筛选 -->
+  <div class="filter-bar">
+    <label><input type="checkbox" value="开源项目" checked><span>🛠 开源项目/工具</span></label>
+    <label><input type="checkbox" value="论文" checked><span>🔬 最新研究/论文</span></label>
+    <label><input type="checkbox" value="模型发布" checked><span>📦 模型发布</span></label>
+    <label><input type="checkbox" value="产品动态" checked><span>🏢 产品动态</span></label>
+  </div>
+
+  <!-- 操作栏 -->
+  <div class="action-bar">
+    <select class="time-select" id="timeRange">
+      <option value="today">GitHub: 今天</option>
+      <option value="7d" selected>GitHub: 7天内</option>
+      <option value="30d">GitHub: 30天内</option>
+      <option value="all">GitHub: 不限时间</option>
+    </select>
+    <button class="btn" id="generateBtn" onclick="startGenerate()">生成简报</button>
+  </div>
+  <p style="text-align:center;color:var(--text-muted);font-size:.75rem;margin-top:-32px;margin-bottom:36px">HuggingFace 和量子位始终显示最新内容</p>
+
+  <!-- 流程图 -->
+  <div class="pipeline" id="pipeline">
+    <div class="node pending" id="node-fetch">
+      <div class="node-dot">📡</div>
+      <div class="node-label">抓取数据</div>
+      <div class="node-count" id="count-fetch"></div>
+    </div>
+    <div class="arrow" id="arrow-0"></div>
+    <div class="node pending" id="node-filter">
+      <div class="node-dot">🔍</div>
+      <div class="node-label">AI 过滤</div>
+      <div class="node-count" id="count-filter"></div>
+    </div>
+    <div class="arrow" id="arrow-1"></div>
+    <div class="node pending" id="node-summarize">
+      <div class="node-dot">✍️</div>
+      <div class="node-label">生成摘要</div>
+      <div class="node-count" id="count-summarize"></div>
+    </div>
+    <div class="arrow" id="arrow-2"></div>
+    <div class="node pending" id="node-output">
+      <div class="node-dot">📋</div>
+      <div class="node-label">整理输出</div>
+      <div class="node-count" id="count-output"></div>
+    </div>
+  </div>
+
+  <!-- 简报结果 -->
+  <div class="results" id="results"></div>
+</div>
+
+<script>
+/* ── 主题切换 ──────────────────────────────────── */
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute("data-theme");
+  const next = current === "dark" ? "light" : "dark";
+  html.setAttribute("data-theme", next);
+  document.getElementById("themeBtn").textContent = next === "dark" ? "🌙" : "☀️";
+  localStorage.setItem("theme", next);
+}
+// 初始化主题
+(function(){
+  const saved = localStorage.getItem("theme");
+  if (saved) {
+    document.documentElement.setAttribute("data-theme", saved);
+    document.getElementById("themeBtn").textContent = saved === "dark" ? "🌙" : "☀️";
+  }
+})();
+
+/* ── 流程图逻辑 ────────────────────────────────── */
+const NODES = ["fetch", "filter", "summarize", "output"];
+const NODE_INDEX = {};
+NODES.forEach((n, i) => NODE_INDEX[n] = i);
+
+function getCategories() {
+  return Array.from(document.querySelectorAll(".filter-bar input:checked"))
+    .map(cb => cb.value);
+}
+
+function resetPipeline() {
+  NODES.forEach(n => {
+    const el = document.getElementById("node-" + n);
+    el.className = "node pending";
+    document.getElementById("count-" + n).textContent = "";
+  });
+  document.querySelectorAll(".arrow").forEach(a => a.classList.remove("active"));
+  document.getElementById("results").className = "results";
+  document.getElementById("results").innerHTML = "";
+}
+
+function setNodeState(name, status, count) {
+  const el = document.getElementById("node-" + name);
+  if (!el) return;
+  el.className = "node " + status;
+  if (status === "done" && count > 0) {
+    document.getElementById("count-" + name).textContent = count + " 条";
+  }
+  const idx = NODE_INDEX[name];
+  if (status === "done" && idx > 0) {
+    const arrow = document.getElementById("arrow-" + (idx - 1));
+    if (arrow) arrow.classList.add("active");
+  }
+  if (status === "done" && idx < NODES.length - 1) {
+    const next = NODES[idx + 1];
+    const nextEl = document.getElementById("node-" + next);
+    if (nextEl && nextEl.classList.contains("pending")) {
+      nextEl.className = "node running";
+    }
+  }
+}
+
+function renderResults(items) {
+  const container = document.getElementById("results");
+  const categories = getCategories();
+
+  const groups = {};
+  items.forEach(item => {
+    const cat = item.category || "产品动态";
+    if (!categories.includes(cat)) return;
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(item);
+  });
+
+  if (Object.keys(groups).length === 0) {
+    container.innerHTML = '<div class="empty-msg">没有找到匹配的简报内容</div>';
+    container.className = "results show";
+    return;
+  }
+
+  const CATEGORY_EMOJI = {
+    "开源项目": "🛠", "论文": "🔬", "模型发布": "📦", "产品动态": "🏢"
+  };
+
+  let html = "";
+  for (const cat of categories) {
+    const list = groups[cat];
+    if (!list || list.length === 0) continue;
+    html += '<div class="category-section">';
+    html += '<div class="category-title">' + (CATEGORY_EMOJI[cat] || "") + " " + cat + "（" + list.length + "）</div>";
+    list.forEach(item => {
+      html += '<div class="card">';
+      html += '<div class="card-header">';
+      html += '<span class="card-title">' + escapeHtml(item.title) + '</span>';
+      html += '<span class="tag">' + escapeHtml(item.category) + '</span>';
+      if (item.source) html += '<span class="tag source">' + escapeHtml(item.source) + '</span>';
+      html += '</div>';
+      html += '<div class="card-summary">' + escapeHtml(item.summary) + '</div>';
+      if (item.url) html += '<a class="card-link" href="' + escapeHtml(item.url) + '" target="_blank">' + escapeHtml(item.url) + '</a>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  container.innerHTML = html;
+  container.className = "results show";
+}
+
+function escapeHtml(text) {
+  const d = document.createElement("div");
+  d.textContent = text || "";
+  return d.innerHTML;
+}
+
+/* ── 生成简报 ──────────────────────────────────── */
+function startGenerate() {
+  const btn = document.getElementById("generateBtn");
+  btn.disabled = true;
+  btn.textContent = "生成中…";
+  resetPipeline();
+
+  setNodeState("fetch", "running", 0);
+
+  const categories = getCategories();
+  const timeRange = document.getElementById("timeRange").value;
+
+  fetch("/generate", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({categories: categories, time_range: timeRange})
+  }).then(response => {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    function read() {
+      reader.read().then(({done, value}) => {
+        if (done) {
+          btn.disabled = false;
+          btn.textContent = "生成简报";
+          return;
+        }
+        buffer += decoder.decode(value, {stream: true});
+        const lines = buffer.split("\n");
+        buffer = "";
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (line.startsWith("data:")) {
+            const jsonStr = line.slice(5).trim();
+            if (!jsonStr) continue;
+            try {
+              const msg = JSON.parse(jsonStr);
+              handleSSE(msg);
+            } catch(e) { /* 忽略解析错误 */ }
+          } else if (line !== "" && !line.startsWith(":") && !line.startsWith("event:") && !line.startsWith("id:")) {
+            if (i === lines.length - 1) buffer = lines[i];
+          }
+        }
+        read();
+      });
+    }
+    read();
+  }).catch(err => {
+    document.getElementById("results").innerHTML = '<div class="error-msg">请求失败：' + escapeHtml(err.message) + '</div>';
+    document.getElementById("results").className = "results show";
+    btn.disabled = false;
+    btn.textContent = "生成简报";
+  });
+}
+
+function handleSSE(msg) {
+  if (msg.node === "complete") {
+    renderResults(msg.final_items || []);
+    document.getElementById("generateBtn").disabled = false;
+    document.getElementById("generateBtn").textContent = "生成简报";
+    return;
+  }
+  setNodeState(msg.node, msg.status, msg.count || 0);
+}
+</script>
+
+</body>
+</html>
