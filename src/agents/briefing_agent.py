@@ -11,7 +11,7 @@ from langgraph.graph import StateGraph, END
 from src.tools.github_tool import fetch_github_trending
 from src.tools.huggingface_tool import fetch_huggingface_papers
 from src.tools.qbitai_tool import fetch_qbitai_news
-from src.prompts.prompts import FILTER_PROMPT, SUMMARIZE_PROMPT
+from src.prompts.prompts import FILTER_PROMPT, SUMMARIZE_PROMPT, FILTER_PROMPT_EN, SUMMARIZE_PROMPT_EN
 
 MODEL = "claude-sonnet-4-6"
 
@@ -24,6 +24,8 @@ class BriefingState(TypedDict):
     final_items: List[Dict]
     status: str  # 当前节点状态，用于SSE推送
     time_range: str  # 时间范围：today/7d/30d/all
+    language: str  # 语言：zh/en
+    categories: List[str]  # 用户选择的内容类型
 
 
 # ── LLM调用 ─────────────────────────────────────────────────
@@ -88,28 +90,41 @@ async def filter_node(state: BriefingState) -> dict:
     """用Claude逐条判断是否与AI相关，过滤不相关内容"""
     client = _get_client()
     filtered = []
+    filter_prompt = FILTER_PROMPT_EN if state.get("language") == "en" else FILTER_PROMPT
 
     # 并发调用LLM进行过滤，限制并发数
     sem = asyncio.Semaphore(3)
 
+    categories = state.get("categories", [])
+
+    default_open_source = "Open Source" if state.get("language") == "en" else "开源项目"
+
     async def _check(item: Dict) -> Dict | None:
-        # GitHub的item已通过topic筛选，直接保留
+        # GitHub来源直接赋予"开源项目"category，跳过LLM
         if item.get("source") == "GitHub":
-            return item
+            if default_open_source not in categories:
+                print(f"过滤：{item['title'][:30]} -> GitHub丢弃, 用户未选择{default_open_source}")
+                return None
+            print(f"过滤：{item['title'][:30]} -> GitHub直接保留, category={default_open_source}")
+            return {**item, "category": default_open_source}
         async with sem:
             await asyncio.sleep(0.5)
             # 清洗文本，避免特殊字符导致API报错
             title = item["title"].replace("\n", " ").replace("\r", " ")[:100]
             summary = item["summary"].replace("\n", " ").replace("\r", " ")[:500]
-            prompt = FILTER_PROMPT.format(title=title, summary=summary)
+            prompt = filter_prompt.format(title=title, summary=summary)
             try:
                 result = _parse_json(await _call_llm(client, prompt))
-                if result.get("relevant"):
-                    return item
+                relevant = result.get("relevant")
+                category = result.get("category", "")
+                keep = relevant and category in categories
+                print(f"过滤：{item['title'][:30]} -> relevant={relevant}, category={category}, {'保留' if keep else '丢弃'}")
+                if not keep:
+                    return None
+                return {**item, "category": category}
             except (json.JSONDecodeError, KeyError) as e:
                 print(f"过滤解析失败：{item['title']}，错误：{e}")
                 return None
-            return None
 
     tasks = [_check(item) for item in state["raw_items"]]
     results = await asyncio.gather(*tasks)
@@ -119,12 +134,13 @@ async def filter_node(state: BriefingState) -> dict:
 
 
 async def summarize_node(state: BriefingState) -> dict:
-    """用Claude为每条内容生成中文摘要和分类标签"""
+    """用Claude为每条内容生成摘要"""
     client = _get_client()
     summarized = []
+    summarize_prompt = SUMMARIZE_PROMPT_EN if state.get("language") == "en" else SUMMARIZE_PROMPT
 
     for item in state["filtered_items"]:
-        prompt = SUMMARIZE_PROMPT.format(
+        prompt = summarize_prompt.format(
             title=item["title"],
             summary=item["summary"],
             source=item["source"],
@@ -134,7 +150,7 @@ async def summarize_node(state: BriefingState) -> dict:
             summarized.append({
                 "title": item["title"],
                 "summary": result.get("summary", item["summary"]),
-                "category": result.get("category", "产品动态"),
+                "category": item["category"],
                 "url": item["url"],
                 "source": item["source"],
             })
@@ -142,7 +158,7 @@ async def summarize_node(state: BriefingState) -> dict:
             summarized.append({
                 "title": item["title"],
                 "summary": item["summary"],
-                "category": "产品动态",
+                "category": item["category"],
                 "url": item["url"],
                 "source": item["source"],
             })

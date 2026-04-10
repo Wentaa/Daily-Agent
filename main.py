@@ -23,6 +23,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 class GenerateRequest(BaseModel):
     categories: List[str]
     time_range: str = "7d"
+    language: str = "zh"
 
 
 @app.get("/")
@@ -60,6 +61,8 @@ async def generate(req: GenerateRequest):
             "final_items": [],
             "status": "",
             "time_range": req.time_range,
+            "language": req.language,
+            "categories": req.categories,
         }
 
         final_items = []
