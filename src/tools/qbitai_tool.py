@@ -68,7 +68,8 @@ async def fetch_qbitai_news(time_range: str = "7d") -> List[Dict]:
         try:
             resp = await client.get(QBITAI_RSS_URL)
             resp.raise_for_status()
-        except httpx.HTTPError:
+        except httpx.HTTPError as e:
+            print(f"[量子位] 抓取失败: {e}")
             return []
 
     return _parse_rss(resp.text, cutoff)

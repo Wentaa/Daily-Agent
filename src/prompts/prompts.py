@@ -50,11 +50,11 @@ Summary: {summary}
 - Open Source: open-source tools, frameworks, and libraries on GitHub
 - Paper: academic papers, technical reports, research findings
 - Model Release: new model releases, model updates, benchmark results
-- Product Update: commercial product launches, feature updates, industry news
+- Product News: commercial product launches, feature updates, industry news
 
 ## Output
 Output JSON only, nothing else:
-{{"relevant": true/false, "category": "choose one from: Open Source, Paper, Model Release, Product Update", "reason": "brief reason"}}
+{{"relevant": true/false, "category": "choose one from: Open Source, Paper, Model Release, Product News", "reason": "brief reason"}}
 """
 
 SUMMARIZE_PROMPT_EN = """\

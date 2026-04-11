@@ -1,5 +1,6 @@
 """抓取GitHub上AI相关的热门项目（通过GitHub Search API）"""
 
+import os
 import httpx
 from typing import List, Dict
 from datetime import datetime, timedelta
@@ -27,18 +28,24 @@ async def fetch_github_trending(time_range: str = "7d") -> List[Dict]:
 
     url = f"{GITHUB_API_BASE}/search/repositories?q={q}&sort=stars&order=desc&per_page=20"
 
+    headers = {
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "DailyAgent/1.0",
+    }
+    token = os.getenv("GITHUB_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
     async with httpx.AsyncClient(
         timeout=30,
-        headers={
-            "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "DailyAgent/1.0",
-        },
+        headers=headers,
         follow_redirects=True,
     ) as client:
         try:
             resp = await client.get(url)
             resp.raise_for_status()
-        except httpx.HTTPError:
+        except httpx.HTTPError as e:
+            print(f"[GitHub] 抓取失败: {e}")
             return []
 
     items = []

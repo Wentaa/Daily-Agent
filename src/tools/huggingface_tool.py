@@ -23,7 +23,8 @@ async def fetch_huggingface_papers(time_range: str = "7d") -> List[Dict]:
         try:
             resp = await client.get(DAILY_PAPERS_API)
             resp.raise_for_status()
-        except httpx.HTTPError:
+        except httpx.HTTPError as e:
+            print(f"[HuggingFace] 抓取失败: {e}")
             return []
 
     papers = resp.json()
