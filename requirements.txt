@@ -6,3 +6,4 @@ httpx
 anthropic
 langgraph
 langchain-core
+mcp
