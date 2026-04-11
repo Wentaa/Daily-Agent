@@ -21,8 +21,6 @@ daily-agent/
 ├── README.md            # 项目说明
 ├── .env                 # 环境变量，不提交git
 ├── requirements.txt     # 依赖
-├── test_api.py          # API测试
-├── test_github.py       # GitHub工具测试
 ├── static/
 │   └── index.html       # 前端页面
 └── src/
