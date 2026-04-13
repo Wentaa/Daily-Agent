@@ -79,9 +79,9 @@ Then use the `get_daily_agent_news` tool in Claude Desktop with optional paramet
 
 <h1 id="中文">AI 每日简报 Agent</h1>
 
-面向 AI 产品经理的多节点 LangGraph Agent —— 自动聚合 GitHub Trending、HuggingFace Papers 与量子位，生成每日结构化简报，缩短产品经理每日了解行业动态的时间。同时支持作为 MCP Server，可在 Claude Desktop 或任何 MCP 兼容客户端中直接调用。
+面向 AI 产品经理的多节点 LangGraph Agent —— 自动聚合 GitHub Trending、HuggingFace Papers 与量子位，生成每日结构化简报，缩短AI产品经理每日了解行业动态的时间。同时支持作为 MCP Server，可在 Claude Desktop 或任何 MCP 兼容客户端中直接调用。
 
-ps：本项目聚焦 AI Agent 应用工程，不涉及模型训练、微调或机器学习研究。
+ps：本项目生成内容聚焦 AI Agent 应用工程，不涉及模型训练、微调或机器学习研究。
 
 ### 功能特性
 
