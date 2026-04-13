@@ -1,0 +1,8 @@
+﻿Name,Status,Owner,Due Date,Priority,Notes
+确认数据源接入方式（GitHub API / HuggingFace RSS / 量子位 RSS）,Done,,,High,GitHub Search API / HuggingFace API / 量子位RSS
+LangGraph Agent 流程搭建,Done,,,High,多节点Pipeline：fetch→filter→summarize→output
+Prompt 调试,Done,,,High,针对三类数据源设计差异化策略
+前端页面开发,Done,,,Medium,原生HTML+CSS+JS
+SSE 实时流程图接入,Done,,,Medium,sse-starlette实现
+GitHub README 撰写,Done,,,Low,
+MCP Server,Done,,,,支持Claude Desktop调用

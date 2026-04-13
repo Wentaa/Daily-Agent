@@ -1,5 +1,7 @@
 [English](#english) | [中文](#中文)
 
+ [Product Requirements Document (PRD)](./docs/daily-agent-prd.md)
+
 ---
 
 <h1 id="english">Daily AI Briefing Agent</h1>
