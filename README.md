@@ -2,6 +2,10 @@
 
  [Product Requirements Document (PRD)](./docs/daily-agent-prd.md)
 
+### 🎬 Demo Video / 演示视频
+
+**▶️ [Watch the demo on YouTube](https://www.youtube.com/watch?v=4OzuvNQofNA)**
+
 ---
 
 <h1 id="english">Daily AI Briefing Agent</h1>
