@@ -3,6 +3,7 @@
 import asyncio
 import json
 import os
+import sys
 from typing import TypedDict, List, Dict
 
 import anthropic
@@ -37,7 +38,7 @@ def _get_client() -> anthropic.AsyncAnthropic:
 
 async def _call_llm(client: anthropic.AsyncAnthropic, prompt: str) -> str:
     """调用Claude，返回文本响应"""
-    print(f"调用LLM，prompt长度：{len(prompt)}，内容前100字：{prompt[:100]}")
+    print(f"调用LLM，prompt长度：{len(prompt)}，内容前100字：{prompt[:100]}", file=sys.stderr)
     message = await client.messages.create(
         model=MODEL,
         max_tokens=512,
@@ -103,9 +104,9 @@ async def filter_node(state: BriefingState) -> dict:
         # GitHub来源直接赋予"开源项目"category，跳过LLM
         if item.get("source") == "GitHub":
             if default_open_source not in categories:
-                print(f"过滤：{item['title'][:30]} -> GitHub丢弃, 用户未选择{default_open_source}")
+                print(f"过滤：{item['title'][:30]} -> GitHub丢弃, 用户未选择{default_open_source}", file=sys.stderr)
                 return None
-            print(f"过滤：{item['title'][:30]} -> GitHub直接保留, category={default_open_source}")
+            print(f"过滤：{item['title'][:30]} -> GitHub直接保留, category={default_open_source}", file=sys.stderr)
             return {**item, "category": default_open_source}
         async with sem:
             await asyncio.sleep(0.5)
@@ -118,12 +119,12 @@ async def filter_node(state: BriefingState) -> dict:
                 relevant = result.get("relevant")
                 category = result.get("category", "")
                 keep = relevant and category in categories
-                print(f"过滤：{item['title'][:30]} -> relevant={relevant}, category={category}, {'保留' if keep else '丢弃'}")
+                print(f"过滤：{item['title'][:30]} -> relevant={relevant}, category={category}, {'保留' if keep else '丢弃'}", file=sys.stderr)
                 if not keep:
                     return None
                 return {**item, "category": category}
             except (json.JSONDecodeError, KeyError) as e:
-                print(f"过滤解析失败：{item['title']}，错误：{e}")
+                print(f"过滤解析失败：{item['title']}，错误：{e}", file=sys.stderr)
                 return None
 
     tasks = [_check(item) for item in state["raw_items"]]
